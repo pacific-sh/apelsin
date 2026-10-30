@@ -1,0 +1,48 @@
+name: Publish
+
+on:
+  schedule:
+    - cron: "7 * * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency: publish
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: github-pages
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: denoland/setup-deno@v2
+
+      - id: pages
+        uses: actions/configure-pages@v6
+
+      - id: build
+        run: |
+          deno task build
+          echo "day=$(date +%d-%m-%Y)" >> "$GITHUB_OUTPUT"
+        env:
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
+
+      - id: data
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: ${{ steps.build.outputs.day }}
+          file_pattern: data
+
+      - if: &publish steps.data.outputs.changes_detected == 'true' || github.event_name != 'schedule'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+      - if: *publish
+        uses: actions/deploy-pages@v5

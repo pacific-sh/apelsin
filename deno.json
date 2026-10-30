@@ -1,0 +1,34 @@
+{
+  "tasks": {
+    "build": "deno run -P --check src/build.ts",
+    "preview": {
+      "command": "deno run -P=preview jsr:@std/http@1/file-server dist",
+      "dependencies": ["build"]
+    }
+  },
+  "permissions": {
+    "default": {
+      "net": ["hn.algolia.com"],
+      "env": ["SITE_URL"],
+      "read": ["."],
+      "write": ["data", "dist"]
+    },
+    "preview": {
+      "net": true,
+      "read": ["dist"]
+    }
+  },
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": true
+  },
+  "fmt": {
+    "lineWidth": 120,
+    "include": ["src/"]
+  },
+  "lint": {
+    "include": ["src/"]
+  },
+  "imports": {
+    "@std/html": "jsr:@std/html@^1.0.7"
+  }
+}
