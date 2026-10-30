@@ -12,15 +12,14 @@ type Hit = {
 async function fetchJson(url: string) {
   for (const retryIn of [2, 4, 8, 0]) {
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+      const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await response.json();
+    } catch (error) {
+      if (!retryIn) throw error;
 
-      return await res.json();
-    } catch (err) {
-      if (!retryIn) throw err;
-
-      console.warn(`${err}, retrying in ${retryIn}s`);
+      console.warn(`${error}, retrying in ${retryIn}s`);
       await new Promise((resolve) => setTimeout(resolve, retryIn * 1000));
     }
   }
@@ -32,14 +31,14 @@ export async function getTopStories({ from, to, limit }: {
   to: Temporal.ZonedDateTime;
   limit: number;
 }) {
-  const query = new URLSearchParams({
+  const params = new URLSearchParams({
     tags: "story",
     numericFilters: `created_at_i>=${from.epochMilliseconds / 1000},created_at_i<${to.epochMilliseconds / 1000}`,
     hitsPerPage: `${limit}`,
     attributesToRetrieve: "title,url,points,num_comments,story_text",
   });
 
-  const { hits }: { hits: Hit[] } = await fetchJson(`https://hn.algolia.com/api/v1/search?${query}`);
+  const { hits }: { hits: Hit[] } = await fetchJson(`https://hn.algolia.com/api/v1/search?${params}`);
 
   return hits.map((hit): Story => ({
     id: Number(hit.objectID),

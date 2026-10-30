@@ -6,12 +6,12 @@ export class Markup extends String {}
 export const markup = (strings: TemplateStringsArray, ...values: unknown[]) =>
   new Markup(String.raw({ raw: strings }, ...values.map(stringify)));
 
-export const raw = (html: string) => new Markup(clean(html));
+export const rawMarkup = (html: string) => new Markup(stripControlChars(html));
 
 function stringify(value: unknown): string {
   if (value instanceof Markup) return `${value}`;
   if (Array.isArray(value)) return value.map(stringify).join("");
-  return clean(escape(`${value ?? ""}`));
+  return stripControlChars(escape(`${value ?? ""}`));
 }
 
-const clean = (text: string) => text.replace(/[[\p{Cc}\p{Cs}]--[\t\n\r]]/gv, "");
+const stripControlChars = (text: string) => text.replace(/[[\p{Cc}\p{Cs}]--[\t\n\r]]/gv, "");

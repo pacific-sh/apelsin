@@ -2,16 +2,17 @@ import { markup } from "./markup.ts";
 
 import type { Story } from "../types.ts";
 
-export const HN = "https://news.ycombinator.com/";
+export const HN_URL = "https://news.ycombinator.com/";
 
-export function source({ id, url }: Story) {
-  const link = URL.parse(url ?? "");
+export function getStoryLink({ id, url }: Story) {
+  const parsedUrl = URL.parse(url ?? "");
 
-  return { href: link?.href ?? discussion(id), host: link?.hostname.replace(/^www\./, "") };
+  return { href: parsedUrl?.href ?? getDiscussionUrl(id), host: parsedUrl?.hostname.replace(/^www\./, "") };
 }
 
-export const stats = ({ id, points, comments }: Story) =>
-  markup`${count(points, "point")}, <a href="${discussion(id)}">${count(comments, "comment")}</a>`;
+export const renderStats = ({ id, points, comments }: Story) =>
+  markup`${formatCount(points, "point")}, <a href="${getDiscussionUrl(id)}">${formatCount(comments, "comment")}</a>`;
 
-const discussion = (id: number) => `${HN}item?id=${id}`;
-const count = (n: number, noun: string) => `${n.toLocaleString("en-US")} ${noun}${n === 1 ? "" : "s"}`;
+const getDiscussionUrl = (id: number) => `${HN_URL}item?id=${id}`;
+const formatCount = (count: number, noun: string) =>
+  `${count.toLocaleString("en-US")} ${noun}${count === 1 ? "" : "s"}`;

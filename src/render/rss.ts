@@ -1,25 +1,25 @@
 import { unescape } from "@std/html";
 
 import { config } from "../config.ts";
-import { publishedAt } from "../time.ts";
-import { markup, raw } from "./markup.ts";
-import { source, stats } from "./story.ts";
+import { getPublishTime } from "../time.ts";
+import { markup, rawMarkup } from "./markup.ts";
+import { getStoryLink, renderStats } from "./story.ts";
 
 import type { Feed, Story } from "../types.ts";
 
-const BODY_MAX_LENGTH = 280;
+const MAX_TEXT_LENGTH = 280;
 
-export function rss({ size, name, hasPages, issues }: Feed, url: string) {
-  const latest = issues.slice(0, config.feedDays);
-  const items = latest.map(({ day, number, stories }) => {
-    const link = hasPages ? markup`<link>${url}/top${size}/${day}.html</link>\n` : "";
+export function renderRss({ size, name, hasPages, issues }: Feed, siteUrl: string) {
+  const latestIssues = issues.slice(0, config.feedDays);
+  const items = latestIssues.map(({ day, number, stories }) => {
+    const pageLink = hasPages ? markup`<link>${siteUrl}/top${size}/${day}.html</link>\n` : "";
 
     return markup`
 <item>
 <title>Issue #${number}</title>
-${link}<guid isPermaLink="false">${url}/top${size}.xml#${day}</guid>
-<pubDate>${pubDate(day)}</pubDate>
-<description><![CDATA[${stories.map(item)}]]></description>
+${pageLink}<guid isPermaLink="false">${siteUrl}/top${size}.xml#${day}</guid>
+<pubDate>${formatPubDate(day)}</pubDate>
+<description><![CDATA[${stories.map(renderStory)}]]></description>
 </item>`;
   });
 
@@ -27,29 +27,31 @@ ${link}<guid isPermaLink="false">${url}/top${size}.xml#${day}</guid>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 <channel>
 <title>${name}</title>
-<link>${url}/${hasPages ? `top${size}/` : ""}</link>
-<atom:link href="${url}/top${size}.xml" rel="self" type="application/rss+xml"/>
+<link>${siteUrl}/${hasPages ? `top${size}/` : ""}</link>
+<atom:link href="${siteUrl}/top${size}.xml" rel="self" type="application/rss+xml"/>
 <description>The ${size} highest-rated Hacker News stories of each day</description>
 <language>en</language>
-<pubDate>${pubDate(latest[0]!.day)}</pubDate>${items}
+<pubDate>${formatPubDate(latestIssues[0]!.day)}</pubDate>${items}
 </channel>
 </rss>
 `;
 }
 
-function item(story: Story, i: number) {
-  const { href, host } = source(story);
-  const origin = host && `${host} — `;
-  const quote = story.text && markup`<blockquote><p>${postText(story.text)}</p></blockquote>`;
+function renderStory(story: Story, index: number) {
+  const { href, host } = getStoryLink(story);
+  const hostPrefix = host && `${host} — `;
+  const quote = story.text && markup`<blockquote><p>${renderPostText(story.text)}</p></blockquote>`;
 
-  return markup`<h3>${i + 1}. <a href="${href}">${story.title}</a></h3><p>${origin}${stats(story)}</p>${quote}`;
+  return markup`<h3>${index + 1}. <a href="${href}">${story.title}</a></h3><p>${hostPrefix}${
+    renderStats(story)
+  }</p>${quote}`;
 }
 
-function postText(html: string) {
-  const text = unescape(html.replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
-  if (text.length <= BODY_MAX_LENGTH) return raw(html.replaceAll("<p>", "<br>"));
+function renderPostText(html: string) {
+  const plainText = unescape(html.replace(/<[^>]*>/g, " ")).replace(/\s+/g, " ").trim();
+  if (plainText.length <= MAX_TEXT_LENGTH) return rawMarkup(html.replaceAll("<p>", "<br>"));
 
-  return `${text.slice(0, BODY_MAX_LENGTH).replace(/[\s.,;:!?-]*\s\S*$/, "")}…`;
+  return `${plainText.slice(0, MAX_TEXT_LENGTH).replace(/[\s.,;:!?-]*\s\S*$/, "")}…`;
 }
 
-const pubDate = (day: string) => new Date(publishedAt(day).epochMilliseconds).toUTCString();
+const formatPubDate = (day: string) => new Date(getPublishTime(day).epochMilliseconds).toUTCString();
