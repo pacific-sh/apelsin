@@ -1,5 +1,7 @@
 # apelsin
 
+*apelsin (Swedish, Russian, Estonian) — orange*
+
 The best of [Hacker News](https://news.ycombinator.com), as RSS.
 From top 5 to top 100.
 
